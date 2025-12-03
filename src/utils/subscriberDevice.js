@@ -96,8 +96,21 @@ class SubscriberDevice {
     }
     
     const topic = `device/${publisherDeviceId}/data`;
-    await this.mqttClient.subscribe(topic);
-    console.log(`\x1b[36mSubscribed to publisher device data: ${publisherDeviceId}\x1b[0m`);
+    try {
+      // [NEW] Step 1: Fetch the session key for the publisher we want to hear
+        const keyResponse = await axios.get(`${this.serverUrl}/api/devices/${publisherDeviceId}/key`);
+        const publisherKey = keyResponse.data.key;
+        
+        // [NEW] Step 2: Register this key with our MQTT client
+        this.mqttClient.addSubscriptionKey(topic, publisherKey);
+        
+        // Step 3: Actually subscribe
+        await this.mqttClient.subscribe(topic);
+        console.log(`\x1b[36mSubscribed to publisher device data: ${publisherDeviceId}\x1b[0m`);
+
+    } catch (error) {
+      console.error(`\x1b[31mFailed to get key for publisher ${publisherDeviceId}:\x1b[0m`, error.message);
+    }
   }
 
   setMessageHandler(handler) {

@@ -164,7 +164,13 @@ class MqttServer {
     this.client.publish(topic, encryptedMessage);
     console.log(`\n\x1b[32m📤 Sent encrypted message to ${deviceId} on ${topic}\x1b[0m`);
   }
-  
+  // [NEW] Method  to retrieve a specific device's session key
+  getSessionKey(deviceId) {
+    if (this.deviceSessions.has(deviceId)) {
+      return this.deviceSessions.get(deviceId).sessionKey;
+    }
+    return null;
+  }
   // Add method to get current heartbeat statistics
   getHeartbeatStats(deviceId) {
     if (deviceId) {

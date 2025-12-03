@@ -6,12 +6,20 @@ class SecureMqttSubscriber {
   constructor(deviceId, sessionKey) {
     this.deviceId = deviceId;
     this.cipher = new SpeckCipher(sessionKey);
+    this.decryptionKeys = new Map(); // [NEW] Map: topic -> Cipher instance
     this.client = null;
     this.heartbeatInterval = null;
     this.connected = false;
     this.heartbeatTopic = `device/${deviceId}/heartbeat`;
     this.brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
     this.messageHandler = null;
+  }
+
+  // [NEW] Method to register a key for a specific topic
+  addSubscriptionKey(topic, key) {
+    const topicCipher = new SpeckCipher(key);
+    this.decryptionKeys.set(topic, topicCipher);
+    console.log(`\n\x1b[36m🔑 Key registered for topic: ${topic}\x1b[0m`);
   }
 
   connect(options = {}) {
@@ -38,9 +46,13 @@ class SecureMqttSubscriber {
         try {
           const encryptedMessage = message.toString();
           console.log(`\n\x1b[33m📩 Received encrypted message on ${topic}: ${encryptedMessage.substring(0, 40)}...\x1b[0m`);
-          
-          // Decrypt the message
-          const decryptedMessage = this.cipher.decrypt(encryptedMessage);
+          //[NEW] Choose the corret cipher 
+          let decryptor=this.cipher;
+          if(this.decryptionKeys.has(topic)){
+            decryptor=this.decryptionKeys.get(topic);
+          }
+          // Decrypt the message using correct cipher
+          const decryptedMessage = decryptor.decrypt(encryptedMessage);
           const decryptedData = JSON.parse(decryptedMessage);
           
           console.log(`\n\x1b[32m🔓 Decrypted message on ${topic}:`, decryptedData, '\x1b[0m');

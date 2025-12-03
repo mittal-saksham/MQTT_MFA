@@ -88,6 +88,20 @@ app.get('/api/devices/:deviceId/status', (req, res) => {
   res.json(status);
 });
 
+// [NEW] Key Exchange Endpoint
+// Allows authorized devices to fetch the encryption key of a publisher they want to subscribe to
+app.get('/api/devices/:targetId/key', (req, res) => {
+  const { targetId } = req.params;
+  
+  const targetKey = mqttServer.getSessionKey(targetId);
+  
+  if (targetKey) {
+    res.json({ success: true, key: targetKey });
+  } else {
+    res.status(404).json({ error: 'Target device not found or not authenticated' });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

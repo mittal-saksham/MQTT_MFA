@@ -182,7 +182,7 @@ function processCommand(publisher, subscriber, command) {
       break;
       
     case '5': // Show device status
-      console.log('[MENU] === Device Status ===');
+      console.log('\n\n[MENU] === Device Status ===');
       console.log(`[MENU] Publisher: ${publisherId} (Messages sent: ${counter})`);
       console.log(`[MENU] Subscriber: ${subscriberId}`);
       console.log(`[MENU] Data transmission: ${dataInterval ? 'RUNNING' : 'STOPPED'}`);
