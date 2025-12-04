@@ -65,6 +65,8 @@ class DeviceSimulator {
       console.log('Authentication successful!');
       this.sessionKey = otkResponse.data.sessionKey;
 
+      this.sessionExpiry=Date.now()+(4*60*1000); //session valid for 4 minutes
+
       return otkResponse.data;
     } catch (error) {
       console.error('Authentication failed:', error.response?.data || error.message);
@@ -86,9 +88,22 @@ class DeviceSimulator {
     console.log('Connected to MQTT broker with secure session');
   }
 
-  publishData(data) {
+  async publishData(data) {
     if (!this.mqttClient) {
       throw new Error('MQTT client not connected');
+    }
+
+    // [NEW] Check if session is about to expire
+    if (Date.now() > this.sessionExpiry) {
+        console.log('\n\x1b[33m⚠️ Session expired! Re-authenticating...\x1b[0m');
+        
+        // 1. Run the full auth flow again (Get new SessionID -> OTK -> Key)
+        await this.authenticate();
+        
+        // 2. Update the running MQTT client with the new key
+        this.mqttClient.updateSessionKey(this.sessionKey);
+        
+        console.log('\x1b[32m✅ Re-authentication complete. Resuming data...\x1b[0m');
     }
     
     const topic = `device/${this.deviceId}/data`;

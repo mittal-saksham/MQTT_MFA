@@ -15,13 +15,6 @@ class SecureMqttSubscriber {
     this.messageHandler = null;
   }
 
-  // [NEW] Method to register a key for a specific topic
-  addSubscriptionKey(topic, key) {
-    const topicCipher = new SpeckCipher(key);
-    this.decryptionKeys.set(topic, topicCipher);
-    console.log(`\n\x1b[36m🔑 Key registered for topic: ${topic}\x1b[0m`);
-  }
-
   connect(options = {}) {
     return new Promise((resolve, reject) => {
       // Connect to MQTT broker
@@ -46,14 +39,17 @@ class SecureMqttSubscriber {
         try {
           const encryptedMessage = message.toString();
           console.log(`\n\x1b[33m📩 Received encrypted message on ${topic}: ${encryptedMessage.substring(0, 40)}...\x1b[0m`);
-          //[NEW] Choose the corret cipher 
-          let decryptor=this.cipher;
-          if(this.decryptionKeys.has(topic)){
-            decryptor=this.decryptionKeys.get(topic);
-          }
-          // Decrypt the message using correct cipher
-          const decryptedMessage = decryptor.decrypt(encryptedMessage);
+          
+          // Decrypt the message
+          const decryptedMessage = this.cipher.decrypt(encryptedMessage);
           const decryptedData = JSON.parse(decryptedMessage);
+
+          // Check for message delay(PRevent Replay Attack)
+          const allowedDelay=5000;//5 seconds
+          if(Date.now()-decryptedData.timestamp>allowedDelay){
+            console.warn(`\n\x1b[33m⚠️  Warning: Message on ${topic} is delayed by more than ${allowedDelay} ms\x1b[0m`);
+            return; //ignore delayed message
+          }
           
           console.log(`\n\x1b[32m🔓 Decrypted message on ${topic}:`, decryptedData, '\x1b[0m');
           

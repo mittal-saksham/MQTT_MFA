@@ -5,7 +5,7 @@ class AuthenticationFilter {
   constructor() {
     // Initialize with reasonable capacity and false positive rate
     // Adjusted bucket size to 2 (a common default for cuckoo filters)
-    this.filter = new CuckooFilter(1000000, 2);
+    this.filter = new CuckooFilter(1000, 2);
     this.deviceCredentials = new Map(); // Store additional device info
   }
 

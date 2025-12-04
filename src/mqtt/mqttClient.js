@@ -106,6 +106,12 @@ class SecureMqttClient {
     }
   }
 
+  // [NEW] Allow updating the key without disconnecting
+  updateSessionKey(newSessionKey) {
+    this.cipher = new SpeckCipher(newSessionKey);
+    console.log(`\n\x1b[35m🔄 MQTT Client updated with NEW session key\x1b[0m`);
+  }
+
   _startHeartbeat() {
     const interval = parseInt(process.env.HEARTBEAT_INTERVAL) || 5000;
     
