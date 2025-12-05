@@ -1,11 +1,11 @@
 import mqtt from 'mqtt';
-import SpeckCipher from '../encryption/speck.js';
+import aesCipher from '../encryption/aesGCM.js';
 import 'dotenv/config';
 
 class SecureMqttSubscriber {
   constructor(deviceId, sessionKey) {
     this.deviceId = deviceId;
-    this.cipher = new SpeckCipher(sessionKey);
+    this.cipher = new aesCipher(sessionKey);
     this.decryptionKeys = new Map(); // [NEW] Map: topic -> Cipher instance
     this.client = null;
     this.heartbeatInterval = null;
@@ -17,7 +17,7 @@ class SecureMqttSubscriber {
   }
 
   addSubscriptionKey(topic, key) {
-    const topicCipher = new SpeckCipher(key);
+    const topicCipher = new aesCipher(key);
     this.decryptionKeys.set(topic, topicCipher);
     console.log(`\n\x1b[36m🔑 Key registered for topic: ${topic}\x1b[0m`);
   }

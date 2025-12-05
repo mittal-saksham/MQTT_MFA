@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { performance } from 'perf_hooks';
-class SpeckCipher {
+class aesCipher {
   constructor(key) {
     // Store original key for debugging
     this.originalKey = key;
@@ -95,7 +95,7 @@ class SpeckCipher {
   }
 }
 
-export default SpeckCipher;
+export default aesCipher;
 
 
 

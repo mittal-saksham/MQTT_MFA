@@ -2,13 +2,13 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import authFilter from './cuckooFilter.js';
 import otkManager from './otk.js';
-import SpeckCipher from '../encryption/speck.js';
+import aesCipher from '../encryption/aesGCM.js';
 import heartbeatMonitor from '../heartbeat/monitor.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const encryptionKey = process.env.ENCRYPTION_KEY || 'default_encryption_key';
-const cipher = new SpeckCipher(encryptionKey);
+const cipher = new aesCipher(encryptionKey);
 
 class MFAService {
   constructor() {

@@ -1,7 +1,7 @@
 
 //NEW
 import mqtt from 'mqtt';
-import SpeckCipher from '../encryption/speck.js';
+import aesCipher from '../encryption/aesGCM.js';
 import heartbeatMonitor from '../heartbeat/monitor.js';
 import { config } from 'dotenv';
 
@@ -146,7 +146,7 @@ class MqttServer {
   }
 
   registerDeviceSession(deviceId, sessionKey) {
-    const cipher = new SpeckCipher(sessionKey);
+    const cipher = new aesCipher(sessionKey);
     this.deviceSessions.set(deviceId, { sessionKey, cipher });
     console.log(`\n\x1b[32m🔒 Registered secure session for device ${deviceId}\x1b[0m`);
   }

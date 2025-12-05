@@ -1,5 +1,5 @@
 import mqtt from 'mqtt';
-import SpeckCipher from '../encryption/speck.js';
+import aesCipher from '../encryption/aesGCM.js';
 import { config } from 'dotenv';
 
 config();
@@ -7,7 +7,7 @@ config();
 class SecureMqttClient {
   constructor(deviceId, sessionKey) {
     this.deviceId = deviceId;
-    this.cipher = new SpeckCipher(sessionKey);
+    this.cipher = new aesCipher(sessionKey);
     this.client = null;
     this.heartbeatInterval = null;
     this.connected = false;
@@ -109,7 +109,7 @@ class SecureMqttClient {
 
   // [NEW] Allow updating the key without disconnecting
   updateSessionKey(newSessionKey) {
-    this.cipher = new SpeckCipher(newSessionKey);
+    this.cipher = new aesCipher(newSessionKey);
     console.log(`\n\x1b[35m🔄 MQTT Client updated with NEW session key\x1b[0m`);
   }
 
