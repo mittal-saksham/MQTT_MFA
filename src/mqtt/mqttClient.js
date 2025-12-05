@@ -13,6 +13,7 @@ class SecureMqttClient {
     this.connected = false;
     this.heartbeatTopic = `device/${deviceId}/heartbeat`;
     this.brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
+    this.sequenceCounter = 0;
   }
 
   connect(options = {}) {
@@ -114,14 +115,18 @@ class SecureMqttClient {
 
   _startHeartbeat() {
     const interval = parseInt(process.env.HEARTBEAT_INTERVAL) || 5000;
-    
     this.heartbeatInterval = setInterval(() => {
+      
+      // [NEW] Increment the counter
+      this.sequenceCounter++; 
+
       const heartbeat = {
         deviceId: this.deviceId,
         timestamp: Date.now(),
         status: 'online',
         type: 'publisher',
-        sequence: Math.floor(Math.random() * 1000)
+        // [MODIFIED] Use the counter instead of random
+        sequence: this.sequenceCounter 
       };
       
       this.publish(this.heartbeatTopic, heartbeat);

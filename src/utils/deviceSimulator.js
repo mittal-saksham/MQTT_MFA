@@ -30,6 +30,8 @@ class DeviceSimulator {
   }
 
   async authenticate() {
+    console.log('\x1b[34m🏁 Starting Authentication Handshake...\x1b[0m');
+    const startTime = Date.now(); // [START TIMER]
     try {
       // Step 1: Initiate authentication
       const initResponse = await axios.post(`${this.serverUrl}/api/auth/initiate`, {
@@ -66,6 +68,9 @@ class DeviceSimulator {
       this.sessionKey = otkResponse.data.sessionKey;
 
       this.sessionExpiry=Date.now()+(4*60*1000); //session valid for 4 minutes
+
+      const totalTime = Date.now() - startTime; // [STOP TIMER]
+      console.log(`\x1b[32m✅ Auth Complete in: ${totalTime}ms\x1b[0m`);
 
       return otkResponse.data;
     } catch (error) {

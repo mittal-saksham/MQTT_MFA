@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-
+import { performance } from 'perf_hooks';
 class SpeckCipher {
   constructor(key) {
     // Store original key for debugging
@@ -18,6 +18,7 @@ class SpeckCipher {
   }
 
   encrypt(plaintext) {
+    const start = performance.now(); // [START TIMER]
     try {
       // Ensure plaintext is a string
       const textToEncrypt = typeof plaintext === 'string' 
@@ -36,6 +37,9 @@ class SpeckCipher {
       
       // [CHANGE 2] Get the Authentication Tag (The "Integrity Seal")
       const authTag = cipher.getAuthTag();
+
+      const end = performance.now(); // [END TIMER]
+
       
       // [CHANGE 3] Format as IV:EncryptedData:AuthTag
       return `${iv.toString('hex')}:${encrypted}:${authTag.toString('hex')}`;
@@ -47,7 +51,9 @@ class SpeckCipher {
   }
 
   decrypt(ciphertext) {
+    const start = performance.now(); // [START TIMER]
     try {
+      
       // Validate input
       if (!ciphertext || typeof ciphertext !== 'string') {
         throw new Error('Invalid ciphertext: must be a non-empty string');
@@ -76,6 +82,9 @@ class SpeckCipher {
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       
+      const end = performance.now(); // [STOP TIMER]
+       console.log(`\x1b[36m🔓 Decryption Cost: ${(end - start).toFixed(3)}ms\x1b[0m`);
+
       return decrypted;
       
     } catch (error) {
