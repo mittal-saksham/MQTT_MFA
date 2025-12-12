@@ -1,4 +1,3 @@
-
 //NEW
 import mqtt from 'mqtt';
 import aesCipher from '../encryption/aesGCM.js';
@@ -15,8 +14,8 @@ class MqttServer {
     this.username = process.env.MQTT_USERNAME;
     this.password = process.env.MQTT_PASSWORD;
     
-    // Add heartbeat statistics
-    this.heartbeatStats = new Map(); // deviceId -> { received: count, missed: count, lastSequence: number }
+    // CHANGED: Simplified stats since Monitor handles the complex window logic
+    this.heartbeatStats = new Map(); // deviceId -> { received: count }
   }
 
   start() {
@@ -53,25 +52,11 @@ class MqttServer {
             const decryptedMessage = cipher.decrypt(message.toString());
             const heartbeatData = JSON.parse(decryptedMessage);
             
-            // Update heartbeat stats
+            // Update raw received count
             if (!this.heartbeatStats.has(deviceId)) {
-              this.heartbeatStats.set(deviceId, { received: 0, missed: 0, lastSequence: null });
+              this.heartbeatStats.set(deviceId, { received: 0 });
             }
-            
-            const stats = this.heartbeatStats.get(deviceId);
-            stats.received++;
-            
-            // If there's a sequence number, check for missed heartbeats
-            if (heartbeatData.sequence !== undefined && stats.lastSequence !== null) {
-              const expectedSequence = (stats.lastSequence + 1) % 1000; // Assuming 0-999 range for sequence
-              if (heartbeatData.sequence !== expectedSequence) {
-                stats.missed++;
-              }
-            }
-            
-            if (heartbeatData.sequence !== undefined) {
-              stats.lastSequence = heartbeatData.sequence;
-            }
+            this.heartbeatStats.get(deviceId).received++;
             
             // Format timestamp for logging
             const timestamp = new Date(heartbeatData.timestamp).toLocaleTimeString();
@@ -80,8 +65,14 @@ class MqttServer {
             const colorCode = heartbeatData.type === 'publisher' ? '\x1b[35m' : '\x1b[36m';
             console.log(`${colorCode}💓 Heartbeat from ${deviceId} (${heartbeatData.type}) at ${timestamp} - seq: ${heartbeatData.sequence || 'N/A'}\x1b[0m`);
             
-            // Record heartbeat
-            heartbeatMonitor.recordHeartbeat(deviceId, heartbeatData.status);
+            // CHANGED: Pass sequence to Monitor and let it handle Sliding Window logic
+            // The monitor now returns the calculated stats, though we don't strictly need them here
+            heartbeatMonitor.recordHeartbeat(
+              deviceId, 
+              heartbeatData.status, 
+              heartbeatData.sequence // <--- Passing the sequence is key
+            );
+
           } catch (error) {
             console.error(`\n\x1b[31m⚠️ Failed to process heartbeat from ${deviceId}:\x1b[0m`, error.message);
           }
@@ -120,22 +111,32 @@ class MqttServer {
         console.log('\x1b[33mNo devices have sent heartbeats yet\x1b[0m');
       } else {
         console.log('\x1b[33m' + 'DEVICE ID'.padEnd(25) + 'STATUS'.padEnd(10) + 'LAST SEEN'.padEnd(15) + 'RELIABILITY\x1b[0m');
-        console.log('\x1b[33m' + '─'.repeat(65) + '\x1b[0m');
+        console.log('\x1b[33m' + '─'.repeat(75) + '\x1b[0m'); // Extended line for extra column space
         
         // Get devices from heartbeat monitor
-        for (const [deviceId, stats] of this.heartbeatStats.entries()) {
+        for (const [deviceId, localStats] of this.heartbeatStats.entries()) {
+          // Fetch the calculated stats from the Monitor (Window Logic)
           const status = heartbeatMonitor.getDeviceStatus(deviceId);
+          
           const statusColor = status.status === 'online' ? '\x1b[32m' : '\x1b[31m';
-          const reliability = stats.received > 0 ? 
-            ((stats.received / (stats.received + stats.missed)) * 100).toFixed(1) + '%' : 
-            'N/A';
+          
+          // CHANGED: Use the stats from the Monitor's sliding window
+          const missed = status.reliability ? status.reliability.missed : 0;
+          const outOfOrder = status.reliability ? status.reliability.outOfOrder : 0;
+          const totalReceived = localStats.received;
+
+          // Calculate reliability percentage based on Monitor's "missed" count
+          const totalExpected = totalReceived + missed;
+          const reliabilityPct = totalExpected > 0 
+            ? ((totalReceived / totalExpected) * 100).toFixed(1) + '%' 
+            : 'N/A';
           
           console.log(
             statusColor + 
             deviceId.padEnd(25) + 
             status.status.toUpperCase().padEnd(10) + 
             (status.lastSeen ? new Date(status.lastSeen).toLocaleTimeString().padEnd(15) : 'N/A'.padEnd(15)) + 
-            `${reliability} (${stats.received} recv, ${stats.missed} missed)` +
+            `${reliabilityPct} (Recv: ${totalReceived}, Miss: ${missed}, OoO: ${outOfOrder})` +
             '\x1b[0m'
           );
         }
@@ -181,4 +182,3 @@ class MqttServer {
 }
 
 export default new MqttServer();
-
