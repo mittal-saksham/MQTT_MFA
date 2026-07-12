@@ -84,24 +84,19 @@ class MFAService {
       session.authenticated = true;
       this.sessions.set(sessionId, session);
       
-      // Generate session key for encrypted communication
-      //only sending a generated random session Key which is not encrypted
-      const sessionKey = crypto.randomBytes(16).toString('hex');      
+      // Generate a per-device random session key for the encryption layer.
+      // Research simplification: the key is returned in the (plaintext) auth
+      // response rather than wrapped in a key-exchange protocol — see
+      // "Known limitations" in the README.
+      const sessionKey = crypto.randomBytes(16).toString('hex');
 
-      //PREV HARD CODED VALUE
-
-      // const sessionKey = 'shared_fixed_session_key_for_all_devices';
-
-
-      //const encryptedSessionKey = cipher.encrypt(sessionKey);          //error hai yaha par next sem karliyo theek hai
-      
       // Record initial heartbeat
       heartbeatMonitor.recordHeartbeat(deviceId, 'online');
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         authenticated: true,
-        sessionKey: sessionKey //UnEncrypted Session Key
+        sessionKey: sessionKey
       };
     }
     

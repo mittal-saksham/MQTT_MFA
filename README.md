@@ -146,7 +146,7 @@ The subscriber writes per-message latency and crypto-time data to `experiment_da
 python visualize.py
 ```
 
-This produces the latency, throughput, CDF, and cryptographic-overhead figures used in the thesis.
+This regenerates the latency, throughput, CDF, and cryptographic-overhead figures from your run's CSV log (figures are not committed to the repo — they are produced from your own experiment data).
 
 ---
 
@@ -157,8 +157,35 @@ This produces the latency, throughput, CDF, and cryptographic-overhead figures u
 | `SERVER_PORT` | `3000` | REST API port for the auth server |
 | `MQTT_BROKER_URL` | `mqtt://localhost:1883` | Mosquitto broker endpoint |
 | `PUBLISH_INTERVAL` | `3000` ms | Publisher message frequency (in `runPublisher.js`) |
-| `HEARTBEAT_INTERVAL` | `5000` ms | Heartbeat frequency (in `src/heartbeat/monitor.js`) |
+| `HEARTBEAT_INTERVAL` | `5000` ms (code default; `.env.example` uses `8000`) | Heartbeat frequency (in `src/mqtt/mqttClient.js` / `mqttSubscriber.js`) |
 | Session validity | `4 min` | Auto re-authentication trigger (in `deviceSimulator.js`) |
+
+---
+
+## Known limitations (research prototype)
+
+This is a research/thesis prototype, and several simplifications are deliberate.
+They are listed here so the threat model is honest:
+
+- **The OTK (second factor) is returned in-band** in the factor-1 HTTP response
+  rather than delivered over a separate channel (SMS/email/TPM). Both factors
+  therefore share one channel; a production system needs true out-of-band delivery.
+- **The session key is delivered unwrapped**, and the
+  `GET /api/devices/:targetId/key` helper endpoint is unauthenticated — it exists
+  so the subscriber simulation can decrypt traffic, but in a real deployment it
+  would defeat the encryption layer. A proper key-exchange (e.g. ECDH) is future work.
+- **Cuckoo-filter pre-auth is probabilistic**: it has a small false-positive rate
+  by design, which is why it is only layer 1 of 4 and is benchmarked (not trusted)
+  as an authentication mechanism.
+- **A synthetic 30–60 ms network delay is injected** before publishing
+  (`src/mqtt/mqttClient.js`) to emulate a WAN hop on localhost; reported
+  end-to-end latencies include this simulated component.
+- Single-process, in-memory state throughout — no persistence or clustering.
+
+A follow-up repo, [MQTT-2-layer](https://github.com/mittal-saksham/MQTT-2-layer),
+isolates the two authentication layers and ships the full reproducible
+attack-benchmark suite (brute force, OTK brute force, false-positive sweep,
+session flood) with committed CSVs and figures.
 
 ---
 
